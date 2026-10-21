@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FF5A1F">
+<meta name="app-version" content="1">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>龜兔賽跑 / The Tortoise and the Hare</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  /* v1 — same vivid v1c palette */
+  --bg:#FFE14A; --ink:#1F0F33; --accent:#FF5A1F; --accent2:#7C1AE8;
+  --btn:#FF3D2E; --safe:#22C55E; --warn:#E11D48;
+  --sky-top:#1E90FF; --chip:#FFFBEA; --cap-border:#FF4FA3;
+}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"PingFang HK","Noto Sans TC","Arial Rounded MT Bold",-apple-system,sans-serif;
+  -webkit-tap-highlight-color:transparent;user-select:none;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%;max-width:900px;margin:0 auto;position:relative}
+header.bar{display:flex;align-items:center;gap:.5rem;padding:.45rem .7rem;
+  background:linear-gradient(90deg,#FFF7AE,#FFD6F0,#D6F3FF);
+  border-bottom:4px solid #FF4FA3;flex-shrink:0;z-index:5}
+header.bar h1{font-size:1.05rem;margin:0;flex:1;line-height:1.25;color:var(--accent2)}
+header.bar .ver{font-size:.7rem;opacity:.55;color:var(--ink)}
+.toggles{display:flex;gap:.35rem;flex-wrap:wrap}
+.toggles button{font-size:.85rem;padding:.35rem .65rem;border-radius:999px;border:3px solid var(--accent2);
+  background:#fff;color:var(--accent2);font-weight:800;cursor:pointer;min-height:40px}
+.toggles button[aria-pressed="true"]{background:var(--accent2);color:#fff}
+#stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:stretch;justify-content:center;
+  touch-action:none}
+.page{display:none;width:100%;height:100%;flex-direction:column;padding:.5rem .7rem .3rem}
+.page.active{display:flex}
+.scene{flex:1;border-radius:24px;border:5px solid #FF8C42;box-shadow:0 8px 0 #FF4FA3;
+  position:relative;overflow:hidden;min-height:180px;background:#B8ECFF}
+.scene-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:4% 3% 6%;gap:2%}
+.ground{position:absolute;left:0;right:0;bottom:0;height:28%;
+  background:linear-gradient(180deg,#7CFF4A,#2DBE2D 70%,#1B8A1B)}
+.sky{position:absolute;inset:0;background:linear-gradient(180deg,#1E90FF 0%,#7AD7FF 45%,#FFE566 100%)}
+.sky.dusk{background:linear-gradient(180deg,#3D2B8C 0%,#FF6B35 45%,#FF2D55 100%)}
+.sky.tense{background:linear-gradient(180deg,#2C3E50 0%,#5D6D7E 40%,#C0392B 100%)}
+.sky.happy{background:linear-gradient(180deg,#00B4FF 0%,#FFE566 55%,#FF7AB8 100%)}
+.sky.soft{background:linear-gradient(180deg,#7EC8FF 0%,#FFE9A8 50%,#FFC4A8 100%)}
+.caption{background:#FFFFFF;border-radius:18px;padding:.55rem .85rem;margin-top:.45rem;
+  font-size:1.05rem;line-height:1.45;border:4px solid var(--cap-border);flex-shrink:0;max-height:28%;overflow:auto;
+  color:var(--ink);box-shadow:0 4px 0 rgba(255,79,163,.25)}
+.caption .tip{color:var(--accent2);font-weight:800;margin-top:.35rem;font-size:.95rem}
+.caption .page-label{font-size:.8rem;color:#5A2A8A;font-weight:800;margin-bottom:.2rem}
+.nav{display:flex;gap:.5rem;padding:.45rem .7rem .7rem;flex-shrink:0;align-items:center}
+.nav button{flex:1;min-height:52px;font-size:1.15rem;font-weight:800;border:none;border-radius:18px;
+  cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.18);color:#fff}
+.nav .prev{background:#9B5DE5}
+.nav .next{background:var(--btn)}
+.nav .replay{background:#00A8FF;flex:0 0 auto;padding:0 1rem;min-width:3.2rem}
+.nav .hub{background:var(--safe)}
+.nav button:disabled{opacity:.35;cursor:not-allowed}
+.nav button:focus-visible{outline:4px dashed var(--ink);outline-offset:3px}
+.pig{font-size:clamp(2.4rem,8vw,4.2rem);line-height:1;filter:drop-shadow(0 3px 0 rgba(0,0,0,.22));position:relative;z-index:2}
+.pig.black{filter:brightness(0.22) contrast(1.35) drop-shadow(0 3px 0 rgba(0,0,0,.28))}
+.pig.white{filter:brightness(1.45) saturate(0.25) contrast(1.05) drop-shadow(0 3px 0 rgba(0,0,0,.16))}
+.pig.spotted{position:relative;filter:saturate(1.35) drop-shadow(0 3px 0 rgba(0,0,0,.22))}
+.pig.spotted::after{content:"";position:absolute;width:.35em;height:.35em;background:#1A1A1A;border-radius:50%;
+  left:.25em;top:.2em;opacity:.9;box-shadow:.45em .15em 0 #1A1A1A, .1em .45em 0 #1A1A1A}
+.mama{font-size:clamp(2.8rem,9vw,4.8rem);z-index:2;filter:saturate(1.25) drop-shadow(0 3px 0 rgba(0,0,0,.2))}
+.wolf{font-size:clamp(2.8rem,9vw,5rem);z-index:3;filter:grayscale(.05) contrast(1.15) saturate(1.1) drop-shadow(0 3px 0 rgba(0,0,0,.25))}
+.house{font-size:clamp(2.2rem,7vw,3.8rem);z-index:1;filter:saturate(1.3) drop-shadow(0 2px 0 rgba(0,0,0,.15))}
+.row{display:flex;align-items:flex-end;justify-content:center;gap:clamp(.4rem,2vw,1.2rem);z-index:2;flex-wrap:wrap}
+.prop{font-size:clamp(1.4rem,4vw,2.4rem);z-index:2;filter:saturate(1.25)}
+.label-chip{background:var(--chip);border:2px solid var(--accent2);border-radius:999px;padding:.18rem .6rem;font-size:.78rem;
+  font-weight:800;color:var(--accent2);margin-top:.15rem;box-shadow:0 2px 0 rgba(124,26,232,.2)}
+.stack{display:flex;flex-direction:column;align-items:center}
+.cloud{position:absolute;font-size:2.2rem;opacity:.9;z-index:0;filter:drop-shadow(0 1px 0 rgba(0,0,0,.08))}
+.cloud.c1{top:8%;left:8%}.cloud.c2{top:12%;right:10%}.cloud.c3{top:6%;left:45%}
+.sun{position:absolute;top:6%;right:8%;font-size:2.7rem;z-index:0;filter:drop-shadow(0 0 6px #FFD700)}
+.sun.soft{opacity:.75;filter:drop-shadow(0 0 4px #FFCC66)}
+.moon{position:absolute;top:8%;left:10%;font-size:2.2rem;z-index:0}
+.pot{font-size:clamp(2rem,6vw,3.2rem);filter:saturate(1.3)}
+.speech{background:#FFFBEA;border:3px solid var(--ink);border-radius:16px;padding:.3rem .6rem;font-size:.85rem;
+  font-weight:800;max-width:12em;text-align:center;z-index:4;margin-bottom:.3rem;color:var(--ink);
+  box-shadow:0 3px 0 var(--accent)}
+.pop-chip{position:absolute;top:18%;left:50%;transform:translateX(-50%) scale(.6);opacity:0;pointer-events:none;
+  background:#FFFBEA;border:3px solid var(--safe);border-radius:999px;padding:.35rem .85rem;font-size:1rem;
+  font-weight:900;color:var(--safe);z-index:6;box-shadow:0 4px 0 rgba(34,197,94,.3)}
+.pop-chip.show{animation:popchip .7s ease-out}
+@keyframes popchip{
+  0%{opacity:0;transform:translateX(-50%) scale(.5) translateY(8px)}
+  30%{opacity:1;transform:translateX(-50%) scale(1.08) translateY(0)}
+  70%{opacity:1;transform:translateX(-50%) scale(1) translateY(0)}
+  100%{opacity:0;transform:translateX(-50%) scale(.9) translateY(-6px)}
+}
+.zzz{font-size:1.4rem;position:absolute;top:14%;right:22%;z-index:3;opacity:.95}
+@keyframes wobble{
+  0%,100%{transform:rotate(0) translateY(0)}
+  25%{transform:rotate(-9deg) translateY(-3px)}
+  50%{transform:rotate(8deg) translateY(1px)}
+  75%{transform:rotate(-5deg) translateY(-1px)}
+}
+@keyframes hammer{
+  0%,100%{transform:rotate(0)}
+  30%{transform:rotate(-25deg) translateY(-4px)}
+  55%{transform:rotate(12deg) translateY(2px)}
+}
+@keyframes spinwheel{
+  0%{transform:rotate(0)}
+  100%{transform:rotate(360deg)}
+}
+@keyframes kick{
+  0%,100%{transform:rotate(0) translateX(0)}
+  40%{transform:rotate(18deg) translateX(4px)}
+  70%{transform:rotate(-12deg) translateX(-2px)}
+}
+@keyframes wave{
+  0%,100%{transform:rotate(0)}
+  30%{transform:rotate(18deg)}
+  60%{transform:rotate(-14deg)}
+}
+.wobble-once{animation:wobble .45s ease-out}
+.hammer-once{animation:hammer .4s ease-out}
+.spin-once{animation:spinwheel .55s linear}
+.kick-once{animation:kick .5s ease-out}
+.wave-once{animation:wave .5s ease-out}
+#gate{position:fixed;inset:0;background:rgba(31,15,51,.62);display:flex;align-items:center;justify-content:center;
+  z-index:50;padding:1rem}
+#gate .panel{background:linear-gradient(180deg,#FFFFFF,#FFF3C4);border-radius:28px;padding:1.4rem 1.6rem;max-width:22rem;text-align:center;
+  border:5px solid var(--accent);box-shadow:0 12px 0 #FF4FA3}
+#gate h2{margin:.2rem 0 .6rem;color:var(--accent2);font-size:1.5rem}
+#gate p{margin:0 0 1rem;font-size:1.05rem;line-height:1.5;color:var(--ink)}
+#gate button{min-height:52px;width:100%;font-size:1.2rem;font-weight:800;border:none;border-radius:18px;
+  background:var(--btn);color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+@media (max-height:520px){
+  .caption{font-size:.92rem;max-height:32%}
+  .nav button{min-height:46px;font-size:1rem}
+}
+</style>
+</head>
+<body>
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <div class="panel">
+    <div aria-hidden="true" style="font-size:2.5rem">🐢🐇📖</div>
+    <h2 id="gate-title">龜兔賽跑</h2>
+    <p>無障礙親子共讀繪本。撳「開始」就會播廣東話旁白同短短卡通音效。用大掣、雙擊或三指左右滑翻頁。</p>
+    <button type="button" id="start-btn">開始共讀 ▶</button>
+  </div>
+</div>
+
+<div id="app">
+  <header class="bar">
+    <h1>龜兔賽跑</h1>
+    <div class="toggles">
+      <button type="button" id="btn-tips" aria-pressed="true" title="互動貼士">貼士開</button>
+    </div>
+    <span class="ver" aria-hidden="true">v1</span>
+  </header>
+
+  <main id="stage" aria-live="polite">
+    <section class="page active" data-page="0" aria-label="封面：烏龜同兔仔並排企喺起點，後面有大樹，遠處有終點旗。">
+      <div class="scene" role="img" aria-label="烏龜同兔仔並排企喺起點，後面有大樹，遠處有終點旗。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢 🐇</span><span class="prop" aria-hidden="true">🌳 🏁</span><span class="label-chip">烏龜　兔仔</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">封面</div>
+        <div class="main-text">《龜兔賽跑》。三指左滑翻頁。</div>
+        <div class="tip">互動貼士：同小朋友一齊講：預備，開始！</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="1" aria-label="第1頁｜跳得快：兔仔喺草地上跳高高，耳仔企起。">
+      <div class="scene" role="img" aria-label="兔仔喺草地上跳高高，耳仔企起。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐇</span><span class="prop" aria-hidden="true">🌼</span><span class="label-chip">兔仔</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第1頁｜跳得快</div>
+        <div class="main-text">兔仔跳得好快，跳上跳落，好得意。</div>
+        <div class="tip">互動貼士：一齊扮兔仔，跳跳跳。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="2" aria-label="第2頁｜笑烏龜：兔仔掩住嘴笑，烏龜伸長頸望住佢。">
+      <div class="scene" role="img" aria-label="兔仔掩住嘴笑，烏龜伸長頸望住佢。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐇 🐢</span><span class="prop" aria-hidden="true">💬</span><span class="label-chip">兔仔　烏龜</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第2頁｜笑烏龜</div>
+        <div class="main-text">兔仔笑烏龜：你行得咁慢，好似蝸牛咁！</div>
+        <div class="tip">互動貼士：一齊扮烏龜，慢慢伸個頭出嚟。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="3" aria-label="第3頁｜比賽：烏龜同兔仔面對面，舉手講比賽。">
+      <div class="scene" role="img" aria-label="烏龜同兔仔面對面，舉手講比賽。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢 🐇</span><span class="prop" aria-hidden="true">🤝</span><span class="label-chip">比賽</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第3頁｜比賽</div>
+        <div class="main-text">烏龜話：不如我哋嚟比賽啦！兔仔話：好呀！</div>
+        <div class="tip">互動貼士：一齊講：比賽呀！</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="4" aria-label="第4頁｜裁判：貓頭鷹企喺大樹枝上；樹下烏龜同兔仔準備起跑。">
+      <div class="scene" role="img" aria-label="貓頭鷹企喺大樹枝上；樹下烏龜同兔仔準備起跑。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🦉</span><span class="prop" aria-hidden="true">🌳 🐢 🐇</span><span class="label-chip">裁判貓頭鷹</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第4頁｜裁判</div>
+        <div class="main-text">貓頭鷹做裁判，企喺大樹上面講：預備，一、二、三，開始！</div>
+        <div class="tip">互動貼士：一齊數：一、二、三！</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="5" aria-label="第5頁｜出發：兔仔喺好遠嘅前面跳緊；烏龜喺後面慢慢爬。">
+      <div class="scene" role="img" aria-label="兔仔喺好遠嘅前面跳緊；烏龜喺後面慢慢爬。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢 ・・・ 🐇</span><span class="prop" aria-hidden="true">☀️</span><span class="label-chip">慢慢行</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第5頁｜出發</div>
+        <div class="main-text">兔仔一跳就跳到好遠；烏龜慢慢行，一步，一步。</div>
+        <div class="tip">互動貼士：用手指扮烏龜，慢慢爬。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="6" aria-label="第6頁｜紅蘿蔔：兔仔坐喺草地上，雙手捉住一條紅蘿蔔食緊。">
+      <div class="scene" role="img" aria-label="兔仔坐喺草地上，雙手捉住一條紅蘿蔔食緊。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐇</span><span class="prop" aria-hidden="true">🥕</span><span class="label-chip">食紅蘿蔔</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第6頁｜紅蘿蔔</div>
+        <div class="main-text">兔仔見到一條紅蘿蔔，咬咬咬，食到好飽。</div>
+        <div class="tip">互動貼士：一齊扮食紅蘿蔔：咔嚓咔嚓。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="7" aria-label="第7頁｜瞓覺：大樹下面，兔仔閉埋眼瞓着咗，頭頂有 Zzz。">
+      <div class="scene" role="img" aria-label="大樹下面，兔仔閉埋眼瞓着咗，頭頂有 Zzz。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🌳 🐇</span><span class="prop" aria-hidden="true">💤</span><span class="label-chip">瞓着咗</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第7頁｜瞓覺</div>
+        <div class="main-text">兔仔話：烏龜咁慢，我瞓一陣先。佢喺大樹下面瞓着咗。</div>
+        <div class="tip">互動貼士：一齊扮瞓覺，呼嚕呼嚕。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="8" aria-label="第8頁｜唔停：烏龜喺前面慢慢行；後面大樹下兔仔仲瞓緊。">
+      <div class="scene" role="img" aria-label="烏龜喺前面慢慢行；後面大樹下兔仔仲瞓緊。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢</span><span class="prop" aria-hidden="true">🌳 🐇 💤</span><span class="label-chip">繼續行</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第8頁｜唔停</div>
+        <div class="main-text">烏龜冇停，慢慢行，慢慢行，行過瞓着咗嘅兔仔。</div>
+        <div class="tip">互動貼士：細細聲講：噓，唔好嘈醒兔仔。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="9" aria-label="第9頁｜蝴蝶打氣：一隻蝴蝶喺烏龜頭頂飛，烏龜笑住繼續行。">
+      <div class="scene" role="img" aria-label="一隻蝴蝶喺烏龜頭頂飛，烏龜笑住繼續行。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢</span><span class="prop" aria-hidden="true">🦋</span><span class="label-chip">加油</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第9頁｜蝴蝶打氣</div>
+        <div class="main-text">蝴蝶飛過嚟同烏龜講：加油呀，烏龜！</div>
+        <div class="tip">互動貼士：一齊同烏龜講：加油！</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="10" aria-label="第10頁｜終點：烏龜行過終點旗；貓頭鷹喺旁邊拍翼歡呼。">
+      <div class="scene" role="img" aria-label="烏龜行過終點旗；貓頭鷹喺旁邊拍翼歡呼。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🏁 🐢</span><span class="prop" aria-hidden="true">🦉 🎉</span><span class="label-chip">烏龜第一</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第10頁｜終點</div>
+        <div class="main-text">烏龜行到終點旗，贏咗！貓頭鷹話：烏龜第一！</div>
+        <div class="tip">互動貼士：一齊拍手：好嘢！</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="11" aria-label="第11頁｜兔仔醒返：兔仔喺大樹下醒返，揉住眼，望住遠處嘅終點。">
+      <div class="scene" role="img" aria-label="兔仔喺大樹下醒返，揉住眼，望住遠處嘅終點。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐇</span><span class="prop" aria-hidden="true">🌳 ❗</span><span class="label-chip">醒返</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第11頁｜兔仔醒返</div>
+        <div class="main-text">兔仔醒返，揉吓眼，話：哎呀，我瞓過籠喇！</div>
+        <div class="tip">互動貼士：一齊扮揉眼，打個呵欠。</div>
+      </div>
+    </section>
+
+    <section class="page" data-page="12" aria-label="第12頁｜大結局：烏龜同兔仔手拖手揮手；貓頭鷹同蝴蝶喺旁邊微笑。">
+      <div class="scene" role="img" aria-label="烏龜同兔仔手拖手揮手；貓頭鷹同蝴蝶喺旁邊微笑。" data-tap="shake-pig">
+        <div class="sky"></div><div class="sun" aria-hidden="true">☀️</div>
+        <span class="cloud c1" aria-hidden="true">☁️</span><span class="cloud c2" aria-hidden="true">☁️</span>
+        <div class="ground"></div>
+        <div class="scene-inner">
+          <div class="row">
+            <div class="stack"><span class="pig tap-target" aria-hidden="true">🐢 🤝 🐇</span><span class="prop" aria-hidden="true">🦉 🦋 👋</span><span class="label-chip">好朋友</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><div class="page-label">第12頁｜大結局</div>
+        <div class="main-text">兔仔話：原來慢慢行，唔放棄，都可以行到終點。烏龜同兔仔手拖手做好朋友。</div>
+        <div class="tip">互動貼士：一齊揮手講拜拜。</div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="翻頁控制">
+    <button type="button" class="prev" id="btn-prev" aria-label="上一頁">◀ 上一頁</button>
+    <button type="button" class="replay" id="btn-replay" aria-label="重播旁白">🔊</button>
+    <button type="button" class="next" id="btn-next" aria-label="下一頁">下一頁 ▶</button>
+    <button type="button" class="hub" id="btn-hub" hidden aria-label="返回星星學樂園">⭐ 返樂園</button>
+  </nav>
+</div>
+
+<script>
+(function () {
+  var APP_VERSION = '1';
+  var LAST_PAGE = 12;
+  var HUB = 'https://julianzhumin.github.io/AstraGarten/';
+  var page = 0;
+  var tipsOn = true;
+  var started = false;
+  var tipTimer = null;
+  var vo = new Audio();
+  var tip = new Audio();
+  var sfx = new Audio();
+  var SFX_VOL = 0.28;
+  var SFX_DUCK = 0.12;
+  var cache = {};
+  var voPlaying = false;
+
+  var PAGE_AUDIO = {
+    0: { vo: 'cover', tip: 'tip-cover', sfx: 'sfx-pop' },
+    1: { vo: 'p1', tip: 'tip-p1', sfx: 'sfx-boing' },
+    2: { vo: 'p2', tip: 'tip-p2', sfx: 'sfx-tap' },
+    3: { vo: 'p3', tip: 'tip-p3', sfx: 'sfx-pop' },
+    4: { vo: 'p4', tip: 'tip-p4', sfx: 'sfx-pop' },
+    5: { vo: 'p5', tip: 'tip-p5', sfx: 'sfx-tap' },
+    6: { vo: 'p6', tip: 'tip-p6', sfx: 'sfx-chew' },
+    7: { vo: 'p7', tip: 'tip-p7', sfx: 'sfx-snore' },
+    8: { vo: 'p8', tip: 'tip-p8', sfx: 'sfx-tap' },
+    9: { vo: 'p9', tip: 'tip-p9', sfx: 'sfx-pop' },
+    10: { vo: 'p10', tip: 'tip-p10', sfx: 'sfx-cheer' },
+    11: { vo: 'p11', tip: 'tip-p11', sfx: 'sfx-boing' },
+    12: { vo: 'p12', tip: 'tip-p12', sfx: 'sfx-cheer' }
+  };
+  var SFX_NAMES = ['sfx-turn','sfx-pop','sfx-tap','sfx-brick','sfx-wind','sfx-stinger','sfx-splash','sfx-boing','sfx-cheer','sfx-chew','sfx-snore','sfx-knock','sfx-struggle'];
+
+  function url(name) {
+    return './audio/' + name + '.mp3?v=' + encodeURIComponent(APP_VERSION);
+  }
+  function preload() {
+    Object.keys(PAGE_AUDIO).forEach(function (k) {
+      var a = PAGE_AUDIO[k];
+      ['vo', 'tip', 'sfx'].forEach(function (kind) {
+        var n = a[kind];
+        if (!cache[n]) {
+          var x = new Audio();
+          x.preload = 'auto';
+          x.src = url(n);
+          cache[n] = x;
+        }
+      });
+    });
+    SFX_NAMES.forEach(function (n) {
+      if (!cache[n]) {
+        var x = new Audio();
+        x.preload = 'auto';
+        x.src = url(n);
+        cache[n] = x;
+      }
+    });
+  }
+
+  function stopVO() {
+    clearTimeout(tipTimer);
+    tipTimer = null;
+    voPlaying = false;
+    try { vo.pause(); vo.currentTime = 0; } catch (e) {}
+    try { tip.pause(); tip.currentTime = 0; } catch (e) {}
+  }
+
+  function playSfx(name, forceQuiet) {
+    if (!name) return;
+    try {
+      sfx.pause();
+      sfx.currentTime = 0;
+    } catch (e) {}
+    sfx.src = url(name);
+    sfx.volume = forceQuiet || voPlaying ? SFX_DUCK : SFX_VOL;
+    var p = sfx.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+
+  function playPageAudio(opts) {
+    if (!started) return;
+    opts = opts || {};
+    stopVO();
+    var meta = PAGE_AUDIO[page];
+    if (opts.withTurn) playSfx('sfx-turn', true);
+    setTimeout(function () {
+      playSfx(meta.sfx, true);
+    }, opts.withTurn ? 120 : 0);
+    vo.src = url(meta.vo);
+    voPlaying = true;
+    var p = vo.play();
+    if (p && p.catch) p.catch(function () {});
+    vo.onended = function () {
+      voPlaying = false;
+      if (!tipsOn) return;
+      tipTimer = setTimeout(function () {
+        tip.src = url(meta.tip);
+        voPlaying = true;
+        var q = tip.play();
+        if (q && q.catch) q.catch(function () {});
+        tip.onended = function () { voPlaying = false; };
+      }, 700);
+    };
+  }
+
+  function showPage(n, opts) {
+    if (n < 0) n = 0;
+    if (n > LAST_PAGE) { goHub(); return; }
+    page = n;
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) {
+      pages[i].classList.toggle('active', +pages[i].getAttribute('data-page') === page);
+    }
+    document.getElementById('btn-prev').disabled = page === 0;
+    var atEnd = page === LAST_PAGE;
+    document.getElementById('btn-next').hidden = atEnd;
+    document.getElementById('btn-hub').hidden = !atEnd;
+    if (started) playPageAudio(opts || {});
+  }
+
+  function next() {
+    if (page >= LAST_PAGE) goHub();
+    else showPage(page + 1, { withTurn: true });
+  }
+  function prev() {
+    if (page > 0) showPage(page - 1, { withTurn: true });
+  }
+  function goHub() {
+    stopVO();
+    try { sfx.pause(); } catch (e) {}
+    location.href = HUB;
+  }
+
+  function bumpAnim(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(function () { el.classList.remove(cls); }, 600);
+  }
+
+  function runTapFx() {
+    var scene = document.querySelector('.page.active .scene');
+    if (!scene) return;
+    var kind = scene.getAttribute('data-tap');
+    if (!kind) return;
+    var target = scene.querySelector('.tap-target');
+    if (kind === 'shake-pig' || kind === 'lunch') {
+      bumpAnim(target, 'wobble-once');
+      var spoon = scene.querySelector('.spoon-target');
+      if (spoon) bumpAnim(spoon, 'wobble-once');
+    } else if (kind === 'hammer') {
+      bumpAnim(target, 'hammer-once');
+      bumpAnim(scene.querySelector('.hammer-prop'), 'hammer-once');
+    } else if (kind === 'nap') {
+      bumpAnim(target, 'wobble-once');
+    } else if (kind === 'cart') {
+      bumpAnim(target, 'wobble-once');
+      bumpAnim(scene.querySelector('.cart-wheels'), 'spin-once');
+    } else if (kind === 'test') {
+      bumpAnim(target, 'hammer-once');
+      bumpAnim(scene.querySelector('.knock-flash'), 'wobble-once');
+      var chip = document.getElementById('chip-solid');
+      if (chip) {
+        chip.classList.remove('show');
+        void chip.offsetWidth;
+        chip.classList.add('show');
+      }
+    } else if (kind === 'stuck') {
+      bumpAnim(target, 'kick-once');
+      bumpAnim(scene.querySelector('.kick-target'), 'kick-once');
+    } else if (kind === 'ending') {
+      scene.querySelectorAll('.tap-target').forEach(function (el) { bumpAnim(el, 'wave-once'); });
+    }
+  }
+
+  // double-tap = next; single tap may wobble
+  var lastTap = 0;
+  document.getElementById('stage').addEventListener('pointerup', function (e) {
+    if (!started) return;
+    if (e.target.closest && e.target.closest('button')) return;
+    var now = Date.now();
+    if (now - lastTap < 350) {
+      next();
+      lastTap = 0;
+    } else {
+      lastTap = now;
+      runTapFx();
+    }
+  });
+
+  // three-finger swipe
+  var swipeStartX = null;
+  var swipeStartY = null;
+  var swipeFired = false;
+  var stage = document.getElementById('stage');
+  function avgTouch(list) {
+    var sx = 0, sy = 0, n = list.length;
+    for (var i = 0; i < n; i++) { sx += list[i].clientX; sy += list[i].clientY; }
+    return { x: sx / n, y: sy / n };
+  }
+  stage.addEventListener('touchstart', function (e) {
+    if (!started) return;
+    if (e.touches.length === 3) {
+      var a = avgTouch(e.touches);
+      swipeStartX = a.x; swipeStartY = a.y; swipeFired = false;
+    } else {
+      swipeStartX = null;
+    }
+  }, { passive: true });
+  stage.addEventListener('touchmove', function (e) {
+    if (swipeStartX == null || swipeFired || e.touches.length !== 3) return;
+    var a = avgTouch(e.touches);
+    var dx = a.x - swipeStartX;
+    var dy = a.y - swipeStartY;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    swipeFired = true;
+    swipeStartX = null;
+    if (dx < 0) next();
+    else prev();
+  }, { passive: true });
+  stage.addEventListener('touchend', function () {
+    if (swipeFired) { swipeFired = false; return; }
+    swipeStartX = null;
+  }, { passive: true });
+  stage.addEventListener('touchcancel', function () { swipeStartX = null; swipeFired = false; }, { passive: true });
+
+  document.getElementById('btn-prev').addEventListener('click', prev);
+  document.getElementById('btn-next').addEventListener('click', next);
+  document.getElementById('btn-hub').addEventListener('click', goHub);
+  document.getElementById('btn-replay').addEventListener('click', function () { playPageAudio({}); });
+
+  document.getElementById('btn-tips').addEventListener('click', function () {
+    tipsOn = !tipsOn;
+    this.setAttribute('aria-pressed', tipsOn ? 'true' : 'false');
+    this.textContent = tipsOn ? '貼士開' : '貼士關';
+    if (!tipsOn) { try { tip.pause(); } catch (e) {} voPlaying = false; }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (!started) return;
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'r' || e.key === 'R') playPageAudio({});
+  });
+
+  document.getElementById('start-btn').addEventListener('click', function () {
+    started = true;
+    document.getElementById('gate').style.display = 'none';
+    preload();
+    showPage(0, {});
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js?v=' + encodeURIComponent(APP_VERSION)).catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
